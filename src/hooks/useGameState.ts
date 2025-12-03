@@ -293,11 +293,6 @@ export function useGameState() {
         allProgress: progress,
         isGuest,
       })
-
-      // Speak letter after delay
-      setTimeout(() => {
-        if (letter) speak(letter.display)
-      }, 500)
     } else {
       setState((s) => ({ ...s, isLoading: false, isGuest }))
     }
