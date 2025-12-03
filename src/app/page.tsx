@@ -3,7 +3,10 @@
 import { useState } from 'react'
 import { createClient, isSupabaseConfigured } from '@/lib/supabase/client'
 import { useRouter } from 'next/navigation'
-import Link from 'next/link'
+import { DeckSelector } from '@/components/DeckSelector'
+import { DeckId } from '@/lib/decks'
+
+type ViewState = 'welcome' | 'deck-selection' | 'login'
 
 export default function LoginPage() {
   const [email, setEmail] = useState('')
@@ -11,10 +14,14 @@ export default function LoginPage() {
   const [isSignUp, setIsSignUp] = useState(false)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
-  const [showLoginForm, setShowLoginForm] = useState(false)
+  const [viewState, setViewState] = useState<ViewState>('welcome')
   const router = useRouter()
   const supabase = createClient()
   const supabaseAvailable = isSupabaseConfigured()
+
+  const handleDeckSelect = (deckId: DeckId) => {
+    router.push(`/play?deck=${deckId}`)
+  }
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -67,8 +74,8 @@ export default function LoginPage() {
     }
   }
 
-  // Show initial choice screen (Play Now vs Sign In)
-  if (!showLoginForm) {
+  // Show welcome screen
+  if (viewState === 'welcome') {
     return (
       <div className="min-h-screen flex flex-col items-center justify-center p-4">
         <div className="text-center mb-8">
@@ -83,9 +90,9 @@ export default function LoginPage() {
 
         <div className="bg-white rounded-3xl shadow-xl p-8 w-full max-w-md">
           {/* Primary action - Play Now */}
-          <Link
-            href="/play"
-            className="block w-full py-5 rounded-xl text-white text-2xl font-bold text-center no-underline transition-transform active:scale-95"
+          <button
+            onClick={() => setViewState('deck-selection')}
+            className="w-full py-5 rounded-xl text-white text-2xl font-bold text-center cursor-pointer transition-transform active:scale-95 border-none"
             style={{
               fontFamily: "'Fredoka One', cursive",
               backgroundColor: '#5FD3BC',
@@ -93,7 +100,7 @@ export default function LoginPage() {
             }}
           >
             Play Now!
-          </Link>
+          </button>
 
           <p className="text-center text-gray-500 text-sm mt-3 mb-6">
             No account needed - start learning right away!
@@ -112,7 +119,7 @@ export default function LoginPage() {
 
               {/* Secondary action - Sign In */}
               <button
-                onClick={() => setShowLoginForm(true)}
+                onClick={() => setViewState('login')}
                 className="w-full py-4 rounded-xl bg-white border-2 border-[#A0C4FF] text-[#A0C4FF] text-lg font-semibold cursor-pointer transition-transform active:scale-95"
                 style={{ fontFamily: "'Fredoka One', cursive" }}
               >
@@ -126,6 +133,38 @@ export default function LoginPage() {
           {supabaseAvailable
             ? 'Create an account to save progress across devices and never lose your stars!'
             : 'Progress is saved locally on this device.'}
+        </p>
+      </div>
+    )
+  }
+
+  // Show deck selection screen
+  if (viewState === 'deck-selection') {
+    return (
+      <div className="min-h-screen flex flex-col items-center justify-center p-4">
+        <div className="text-center mb-8">
+          <h1
+            className="text-5xl mb-2"
+            style={{ fontFamily: "'Fredoka One', cursive", color: '#FF8BA7' }}
+          >
+            ABC Fun Cards
+          </h1>
+          <p className="text-lg text-gray-600">Learn letters with fun!</p>
+        </div>
+
+        <div className="bg-white rounded-3xl shadow-xl p-8 w-full max-w-md">
+          <button
+            onClick={() => setViewState('welcome')}
+            className="mb-4 text-[#5FD3BC] font-bold text-sm cursor-pointer bg-transparent border-none"
+          >
+            ← Back
+          </button>
+
+          <DeckSelector onSelectDeck={handleDeckSelect} />
+        </div>
+
+        <p className="mt-8 text-sm text-gray-500 text-center max-w-md">
+          Pick a letter pack to start practicing!
         </p>
       </div>
     )
@@ -146,7 +185,7 @@ export default function LoginPage() {
 
       <div className="bg-white rounded-3xl shadow-xl p-8 w-full max-w-md">
         <button
-          onClick={() => setShowLoginForm(false)}
+          onClick={() => setViewState('welcome')}
           className="mb-4 text-[#5FD3BC] font-bold text-sm cursor-pointer bg-transparent border-none"
         >
           ← Back

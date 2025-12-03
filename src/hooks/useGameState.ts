@@ -7,7 +7,21 @@ import { calculateNextReview, selectNextCard, CardProgress } from '@/lib/srs'
 import { speak } from '@/lib/speech'
 import { migrateFromLocalStorage } from '@/lib/migration'
 import { getNewAchievements, Achievement } from '@/lib/achievements'
+import { DeckId, getLettersForDeck } from '@/lib/decks'
 
+function getGuestProgressKey(deckId: DeckId): string {
+  return `abc_guest_progress_${deckId}`
+}
+
+function getGuestStatsKey(deckId: DeckId): string {
+  return `abc_guest_stats_${deckId}`
+}
+
+function getGuestAchievementsKey(deckId: DeckId): string {
+  return `abc_guest_achievements_${deckId}`
+}
+
+// Legacy keys for migration
 const GUEST_PROGRESS_KEY = 'abc_guest_progress'
 const GUEST_STATS_KEY = 'abc_guest_stats'
 const GUEST_ACHIEVEMENTS_KEY = 'abc_guest_achievements'
@@ -18,14 +32,19 @@ interface GuestProgress {
   achievements: string[]
 }
 
-function loadGuestProgress(): GuestProgress {
+function loadGuestProgress(deckId: DeckId): GuestProgress {
   if (typeof window === 'undefined') {
     return { cards: [], totalStars: 0, achievements: [] }
   }
 
-  const savedProgress = localStorage.getItem(GUEST_PROGRESS_KEY)
-  const savedStats = localStorage.getItem(GUEST_STATS_KEY)
-  const savedAchievements = localStorage.getItem(GUEST_ACHIEVEMENTS_KEY)
+  const deckLetters = getLettersForDeck(deckId)
+  const progressKey = getGuestProgressKey(deckId)
+  const statsKey = getGuestStatsKey(deckId)
+  const achievementsKey = getGuestAchievementsKey(deckId)
+
+  const savedProgress = localStorage.getItem(progressKey)
+  const savedStats = localStorage.getItem(statsKey)
+  const savedAchievements = localStorage.getItem(achievementsKey)
 
   let cards: CardProgress[] = []
   if (savedProgress) {
@@ -40,16 +59,25 @@ function loadGuestProgress(): GuestProgress {
     }
   }
 
-  // Initialize cards if empty
-  if (cards.length === 0) {
-    cards = letters.map((l) => ({
-      id: l.id,
-      letter_id: l.id,
-      level: 0,
-      next_review: new Date(),
-      review_count: 0,
-    }))
-    localStorage.setItem(GUEST_PROGRESS_KEY, JSON.stringify(cards))
+  // Initialize cards if empty or if deck letters changed
+  if (cards.length === 0 || cards.length !== deckLetters.length) {
+    // Preserve any existing progress for letters that still exist
+    const existingProgressMap = new Map(cards.map((c) => [c.letter_id, c]))
+
+    cards = deckLetters.map((l) => {
+      const existing = existingProgressMap.get(l.id)
+      if (existing) {
+        return existing
+      }
+      return {
+        id: l.id,
+        letter_id: l.id,
+        level: 0,
+        next_review: new Date(),
+        review_count: 0,
+      }
+    })
+    localStorage.setItem(progressKey, JSON.stringify(cards))
   }
 
   const totalStars = savedStats ? parseInt(savedStats, 10) || 0 : 0
@@ -58,11 +86,11 @@ function loadGuestProgress(): GuestProgress {
   return { cards, totalStars, achievements }
 }
 
-function saveGuestProgress(cards: CardProgress[], totalStars: number, achievements: string[]) {
+function saveGuestProgress(deckId: DeckId, cards: CardProgress[], totalStars: number, achievements: string[]) {
   if (typeof window === 'undefined') return
-  localStorage.setItem(GUEST_PROGRESS_KEY, JSON.stringify(cards))
-  localStorage.setItem(GUEST_STATS_KEY, totalStars.toString())
-  localStorage.setItem(GUEST_ACHIEVEMENTS_KEY, JSON.stringify(achievements))
+  localStorage.setItem(getGuestProgressKey(deckId), JSON.stringify(cards))
+  localStorage.setItem(getGuestStatsKey(deckId), totalStars.toString())
+  localStorage.setItem(getGuestAchievementsKey(deckId), JSON.stringify(achievements))
 }
 
 interface GameState {
@@ -73,9 +101,16 @@ interface GameState {
   totalStars: number
   allProgress: CardProgress[]
   isGuest: boolean
+  deckId: DeckId
 }
 
-export function useGameState() {
+interface UseGameStateOptions {
+  deckId?: DeckId
+}
+
+export function useGameState(options: UseGameStateOptions = {}) {
+  const { deckId = 'uppercase' } = options
+  const deckLetters = useMemo(() => getLettersForDeck(deckId), [deckId])
   const [state, setState] = useState<GameState>({
     currentLetter: null,
     currentProgress: null,
@@ -84,6 +119,7 @@ export function useGameState() {
     totalStars: 0,
     allProgress: [],
     isGuest: true,
+    deckId,
   })
   const [confettiTrigger, setConfettiTrigger] = useState(0)
   const [newAchievement, setNewAchievement] = useState<Achievement | null>(null)
@@ -106,7 +142,7 @@ export function useGameState() {
   const loadProgress = useCallback(async (): Promise<{ cards: CardProgress[], isGuest: boolean, guestAchievements: string[] }> => {
     // If Supabase is not configured, always use guest mode
     if (!supabase) {
-      const guestData = loadGuestProgress()
+      const guestData = loadGuestProgress(deckId)
       setGuestAchievements(guestData.achievements)
       return { cards: guestData.cards, isGuest: true, guestAchievements: guestData.achievements }
     }
@@ -115,7 +151,7 @@ export function useGameState() {
 
     // Guest mode - use localStorage
     if (!user) {
-      const guestData = loadGuestProgress()
+      const guestData = loadGuestProgress(deckId)
       setGuestAchievements(guestData.achievements)
       return { cards: guestData.cards, isGuest: true, guestAchievements: guestData.achievements }
     }
@@ -125,27 +161,59 @@ export function useGameState() {
     await tryMigration(user.id)
     await migrateGuestToUser(user.id)
 
+    // Get letter IDs for this deck
+    const deckLetterIds = deckLetters.map((l) => l.id)
+
     const { data: progress } = await supabase
       .from('card_progress')
       .select('*')
       .eq('user_id', user.id)
+      .in('letter_id', deckLetterIds)
 
     if (progress && progress.length > 0) {
-      return {
-        cards: progress.map((p) => ({
-          id: p.id,
-          letter_id: p.letter_id,
-          level: p.level,
-          next_review: new Date(p.next_review),
-          review_count: p.review_count,
-        })),
-        isGuest: false,
-        guestAchievements: [],
+      // Check if we have all letters for this deck
+      const existingLetterIds = new Set(progress.map((p) => p.letter_id))
+      const missingLetters = deckLetters.filter((l) => !existingLetterIds.has(l.id))
+
+      // Insert missing letters
+      if (missingLetters.length > 0) {
+        await supabase
+          .from('card_progress')
+          .insert(
+            missingLetters.map((l) => ({
+              user_id: user.id,
+              letter_id: l.id,
+              level: 0,
+              next_review: new Date().toISOString(),
+              review_count: 0,
+            }))
+          )
+      }
+
+      // Reload with all letters
+      const { data: allProgress } = await supabase
+        .from('card_progress')
+        .select('*')
+        .eq('user_id', user.id)
+        .in('letter_id', deckLetterIds)
+
+      if (allProgress) {
+        return {
+          cards: allProgress.map((p) => ({
+            id: p.id,
+            letter_id: p.letter_id,
+            level: p.level,
+            next_review: new Date(p.next_review),
+            review_count: p.review_count,
+          })),
+          isGuest: false,
+          guestAchievements: [],
+        }
       }
     }
 
-    // Initialize progress for new user
-    const initialProgress = letters.map((l) => ({
+    // Initialize progress for new user with this deck's letters
+    const initialProgress = deckLetters.map((l) => ({
       id: '', // Will be set by DB
       letter_id: l.id,
       level: 0,
@@ -182,7 +250,7 @@ export function useGameState() {
     }
 
     return { cards: initialProgress, isGuest: false, guestAchievements: [] }
-  }, [supabase])
+  }, [supabase, deckId, deckLetters])
 
   // Migrate guest progress to authenticated user
   const migrateGuestToUser = useCallback(async (userId: string) => {
@@ -254,7 +322,7 @@ export function useGameState() {
   // Load stats
   const loadStats = useCallback(async (isGuest: boolean) => {
     if (isGuest || !supabase) {
-      const guestStats = localStorage.getItem(GUEST_STATS_KEY)
+      const guestStats = localStorage.getItem(getGuestStatsKey(deckId))
       return guestStats ? parseInt(guestStats, 10) || 0 : 0
     }
 
@@ -268,7 +336,7 @@ export function useGameState() {
       .single()
 
     return stats?.total_stars || 0
-  }, [supabase])
+  }, [supabase, deckId])
 
   // Load next card
   const loadNextCard = useCallback(async () => {
@@ -283,20 +351,21 @@ export function useGameState() {
     }
 
     if (nextCard) {
-      const letter = letters.find((l) => l.id === nextCard.letter_id)
+      const letter = deckLetters.find((l) => l.id === nextCard.letter_id)
       setState({
-        currentLetter: letter || letters[0],
+        currentLetter: letter || deckLetters[0],
         currentProgress: nextCard,
         isFlipped: false,
         isLoading: false,
         totalStars,
         allProgress: progress,
         isGuest,
+        deckId,
       })
     } else {
-      setState((s) => ({ ...s, isLoading: false, isGuest }))
+      setState((s) => ({ ...s, isLoading: false, isGuest, deckId }))
     }
-  }, [loadProgress, loadStats])
+  }, [loadProgress, loadStats, deckLetters, deckId])
 
   // Flip the card
   const flipCard = useCallback(() => {
@@ -339,14 +408,14 @@ export function useGameState() {
           if (newAchievementsFound.length > 0) {
             const newAchievementKeys = [...guestAchievements, ...newAchievementsFound.map(a => a.key)]
             setGuestAchievements(newAchievementKeys)
-            saveGuestProgress(updatedProgress, newTotalStars, newAchievementKeys)
+            saveGuestProgress(deckId, updatedProgress, newTotalStars, newAchievementKeys)
 
             // Show the first new achievement
             setNewAchievement(newAchievementsFound[0])
             speak(`Achievement unlocked! ${newAchievementsFound[0].name}`)
             setTimeout(() => setNewAchievement(null), 3000)
           } else {
-            saveGuestProgress(updatedProgress, newTotalStars, guestAchievements)
+            saveGuestProgress(deckId, updatedProgress, newTotalStars, guestAchievements)
             if (newLevel >= 3) {
               speak('You are a master!')
             } else {
@@ -354,7 +423,7 @@ export function useGameState() {
             }
           }
         } else {
-          saveGuestProgress(updatedProgress, newTotalStars, guestAchievements)
+          saveGuestProgress(deckId, updatedProgress, newTotalStars, guestAchievements)
           speak("That's okay, let's learn it.")
         }
       } else {
@@ -423,7 +492,7 @@ export function useGameState() {
       // Load next card after delay
       setTimeout(loadNextCard, 1000)
     },
-    [state, supabase, loadNextCard, guestAchievements]
+    [state, supabase, loadNextCard, guestAchievements, deckId]
   )
 
   // Sign out

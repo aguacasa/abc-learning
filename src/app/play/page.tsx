@@ -1,13 +1,21 @@
 'use client'
 
+import { Suspense } from 'react'
 import Link from 'next/link'
+import { useSearchParams } from 'next/navigation'
 import { useGameState } from '@/hooks/useGameState'
 import { FlashCard } from '@/components/FlashCard'
 import { GameControls } from '@/components/GameControls'
 import { StarJar } from '@/components/StarJar'
 import { Confetti } from '@/components/Confetti'
+import { DeckId, getDeckById } from '@/lib/decks'
 
-export default function PlayPage() {
+function PlayPageContent() {
+  const searchParams = useSearchParams()
+  const deckParam = searchParams.get('deck') as DeckId | null
+  const deckId: DeckId = deckParam && getDeckById(deckParam) ? deckParam : 'uppercase'
+  const deck = getDeckById(deckId)
+
   const {
     currentLetter,
     currentProgress,
@@ -20,7 +28,7 @@ export default function PlayPage() {
     flipCard,
     handleResult,
     signOut,
-  } = useGameState()
+  } = useGameState({ deckId })
 
   if (isLoading || !currentLetter || !currentProgress) {
     return (
@@ -57,7 +65,17 @@ export default function PlayPage() {
 
       {/* Header */}
       <header className="w-full p-4 flex justify-between items-center">
-        <StarJar totalStars={totalStars} />
+        <div className="flex items-center gap-3">
+          <StarJar totalStars={totalStars} />
+          <Link
+            href="/"
+            className="text-xs text-gray-400 hover:text-[#5FD3BC] no-underline flex items-center gap-1"
+            title="Change pack"
+          >
+            <span className="text-sm">📚</span>
+            {deck?.name || 'Uppercase'}
+          </Link>
+        </div>
         <div className="flex items-center gap-4">
           <Link
             href="/play/achievements"
@@ -119,5 +137,26 @@ export default function PlayPage() {
         />
       </div>
     </div>
+  )
+}
+
+function PlayPageLoading() {
+  return (
+    <div className="min-h-screen flex items-center justify-center">
+      <div
+        className="text-2xl"
+        style={{ fontFamily: "'Fredoka One', cursive", color: '#FF8BA7' }}
+      >
+        Loading...
+      </div>
+    </div>
+  )
+}
+
+export default function PlayPage() {
+  return (
+    <Suspense fallback={<PlayPageLoading />}>
+      <PlayPageContent />
+    </Suspense>
   )
 }
