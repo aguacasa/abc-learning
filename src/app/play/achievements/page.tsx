@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { ACHIEVEMENTS, Achievement } from '@/lib/achievements'
 import Link from 'next/link'
@@ -11,10 +11,25 @@ export default function AchievementsPage() {
   const [earnedKeys, setEarnedKeys] = useState<string[]>([])
   const [loading, setLoading] = useState(true)
   const [isGuest, setIsGuest] = useState(true)
-  const supabase = createClient()
+  const supabase = useMemo(() => createClient(), [])
 
   useEffect(() => {
     async function loadAchievements() {
+      // If Supabase is not configured, always use guest mode
+      if (!supabase) {
+        setIsGuest(true)
+        const savedAchievements = localStorage.getItem(GUEST_ACHIEVEMENTS_KEY)
+        if (savedAchievements) {
+          try {
+            setEarnedKeys(JSON.parse(savedAchievements))
+          } catch {
+            setEarnedKeys([])
+          }
+        }
+        setLoading(false)
+        return
+      }
+
       const { data: { user } } = await supabase.auth.getUser()
 
       if (!user) {

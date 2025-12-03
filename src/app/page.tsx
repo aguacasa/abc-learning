@@ -1,7 +1,7 @@
 'use client'
 
 import { useState } from 'react'
-import { createClient } from '@/lib/supabase/client'
+import { createClient, isSupabaseConfigured } from '@/lib/supabase/client'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 
@@ -14,9 +14,14 @@ export default function LoginPage() {
   const [showLoginForm, setShowLoginForm] = useState(false)
   const router = useRouter()
   const supabase = createClient()
+  const supabaseAvailable = isSupabaseConfigured()
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
+    if (!supabase) {
+      setError('Authentication is not configured. Please play as guest.')
+      return
+    }
     setLoading(true)
     setError(null)
 
@@ -45,6 +50,10 @@ export default function LoginPage() {
   }
 
   const handleGoogleLogin = async () => {
+    if (!supabase) {
+      setError('Authentication is not configured. Please play as guest.')
+      return
+    }
     setLoading(true)
     const { error } = await supabase.auth.signInWithOAuth({
       provider: 'google',
@@ -90,27 +99,33 @@ export default function LoginPage() {
             No account needed - start learning right away!
           </p>
 
-          <div className="relative mb-6">
-            <div className="absolute inset-0 flex items-center">
-              <div className="w-full border-t border-gray-300" />
-            </div>
-            <div className="relative flex justify-center text-sm">
-              <span className="px-2 bg-white text-gray-500">or</span>
-            </div>
-          </div>
+          {supabaseAvailable && (
+            <>
+              <div className="relative mb-6">
+                <div className="absolute inset-0 flex items-center">
+                  <div className="w-full border-t border-gray-300" />
+                </div>
+                <div className="relative flex justify-center text-sm">
+                  <span className="px-2 bg-white text-gray-500">or</span>
+                </div>
+              </div>
 
-          {/* Secondary action - Sign In */}
-          <button
-            onClick={() => setShowLoginForm(true)}
-            className="w-full py-4 rounded-xl bg-white border-2 border-[#A0C4FF] text-[#A0C4FF] text-lg font-semibold cursor-pointer transition-transform active:scale-95"
-            style={{ fontFamily: "'Fredoka One', cursive" }}
-          >
-            Sign In to Save Progress
-          </button>
+              {/* Secondary action - Sign In */}
+              <button
+                onClick={() => setShowLoginForm(true)}
+                className="w-full py-4 rounded-xl bg-white border-2 border-[#A0C4FF] text-[#A0C4FF] text-lg font-semibold cursor-pointer transition-transform active:scale-95"
+                style={{ fontFamily: "'Fredoka One', cursive" }}
+              >
+                Sign In to Save Progress
+              </button>
+            </>
+          )}
         </div>
 
         <p className="mt-8 text-sm text-gray-500 text-center max-w-md">
-          Create an account to save progress across devices and never lose your stars!
+          {supabaseAvailable
+            ? 'Create an account to save progress across devices and never lose your stars!'
+            : 'Progress is saved locally on this device.'}
         </p>
       </div>
     )

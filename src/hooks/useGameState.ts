@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useCallback, useRef } from 'react'
+import { useState, useEffect, useCallback, useRef, useMemo } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { letters, Letter } from '@/lib/letters'
 import { calculateNextReview, selectNextCard, CardProgress } from '@/lib/srs'
@@ -89,11 +89,11 @@ export function useGameState() {
   const [newAchievement, setNewAchievement] = useState<Achievement | null>(null)
   const [guestAchievements, setGuestAchievements] = useState<string[]>([])
   const hasMigrated = useRef(false)
-  const supabase = createClient()
+  const supabase = useMemo(() => createClient(), [])
 
   // Try to migrate from localStorage on first load
   const tryMigration = useCallback(async (userId: string) => {
-    if (hasMigrated.current) return
+    if (hasMigrated.current || !supabase) return
     hasMigrated.current = true
 
     const result = await migrateFromLocalStorage(supabase, userId)
@@ -104,6 +104,13 @@ export function useGameState() {
 
   // Load progress from Supabase or localStorage for guests
   const loadProgress = useCallback(async (): Promise<{ cards: CardProgress[], isGuest: boolean, guestAchievements: string[] }> => {
+    // If Supabase is not configured, always use guest mode
+    if (!supabase) {
+      const guestData = loadGuestProgress()
+      setGuestAchievements(guestData.achievements)
+      return { cards: guestData.cards, isGuest: true, guestAchievements: guestData.achievements }
+    }
+
     const { data: { user } } = await supabase.auth.getUser()
 
     // Guest mode - use localStorage
@@ -179,6 +186,8 @@ export function useGameState() {
 
   // Migrate guest progress to authenticated user
   const migrateGuestToUser = useCallback(async (userId: string) => {
+    if (!supabase) return // Can't migrate without Supabase
+
     const guestProgress = localStorage.getItem(GUEST_PROGRESS_KEY)
     const guestStats = localStorage.getItem(GUEST_STATS_KEY)
     const guestAchievementsData = localStorage.getItem(GUEST_ACHIEVEMENTS_KEY)
@@ -244,7 +253,7 @@ export function useGameState() {
 
   // Load stats
   const loadStats = useCallback(async (isGuest: boolean) => {
-    if (isGuest) {
+    if (isGuest || !supabase) {
       const guestStats = localStorage.getItem(GUEST_STATS_KEY)
       return guestStats ? parseInt(guestStats, 10) || 0 : 0
     }
@@ -355,6 +364,7 @@ export function useGameState() {
         }
       } else {
         // Authenticated mode - save to Supabase
+        if (!supabase) return
         const { data: { user } } = await supabase.auth.getUser()
         if (!user) return
 
@@ -423,7 +433,9 @@ export function useGameState() {
 
   // Sign out
   const signOut = useCallback(async () => {
-    await supabase.auth.signOut()
+    if (supabase) {
+      await supabase.auth.signOut()
+    }
     window.location.href = '/'
   }, [supabase])
 

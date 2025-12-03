@@ -8,6 +8,10 @@ export async function GET(request: Request) {
 
   if (code) {
     const supabase = await createClient()
+    if (!supabase) {
+      // Supabase not configured, redirect to play as guest
+      return NextResponse.redirect(`${origin}/play`)
+    }
     const { error } = await supabase.auth.exchangeCodeForSession(code)
     if (!error) {
       return NextResponse.redirect(`${origin}${next}`)
