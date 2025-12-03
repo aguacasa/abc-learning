@@ -1,20 +1,21 @@
-'use client'
+"use client";
 
-import { Suspense } from 'react'
-import Link from 'next/link'
-import { useSearchParams } from 'next/navigation'
-import { useGameState } from '@/hooks/useGameState'
-import { FlashCard } from '@/components/FlashCard'
-import { GameControls } from '@/components/GameControls'
-import { StarJar } from '@/components/StarJar'
-import { Confetti } from '@/components/Confetti'
-import { DeckId, getDeckById } from '@/lib/decks'
+import { Suspense } from "react";
+import Link from "next/link";
+import { useSearchParams } from "next/navigation";
+import { useGameState } from "@/hooks/useGameState";
+import { FlashCard } from "@/components/FlashCard";
+import { GameControls } from "@/components/GameControls";
+import { StarJar } from "@/components/StarJar";
+import { Confetti } from "@/components/Confetti";
+import { DeckId, getDeckById } from "@/lib/decks";
 
 function PlayPageContent() {
-  const searchParams = useSearchParams()
-  const deckParam = searchParams.get('deck') as DeckId | null
-  const deckId: DeckId = deckParam && getDeckById(deckParam) ? deckParam : 'uppercase'
-  const deck = getDeckById(deckId)
+  const searchParams = useSearchParams();
+  const deckParam = searchParams.get("deck") as DeckId | null;
+  const deckId: DeckId =
+    deckParam && getDeckById(deckParam) ? deckParam : "uppercase";
+  const deck = getDeckById(deckId);
 
   const {
     currentLetter,
@@ -28,19 +29,19 @@ function PlayPageContent() {
     flipCard,
     handleResult,
     signOut,
-  } = useGameState({ deckId })
+  } = useGameState({ deckId });
 
   if (isLoading || !currentLetter || !currentProgress) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div
           className="text-2xl"
-          style={{ fontFamily: "'Fredoka One', cursive", color: '#FF8BA7' }}
+          style={{ fontFamily: "'Fredoka One', cursive", color: "#FF8BA7" }}
         >
           Loading...
         </div>
       </div>
-    )
+    );
   }
 
   return (
@@ -54,7 +55,7 @@ function PlayPageContent() {
           <div>
             <div
               className="font-bold"
-              style={{ fontFamily: "'Fredoka One', cursive", color: '#FF8BA7' }}
+              style={{ fontFamily: "'Fredoka One', cursive", color: "#FF8BA7" }}
             >
               Achievement Unlocked!
             </div>
@@ -73,7 +74,7 @@ function PlayPageContent() {
             title="Change pack"
           >
             <span className="text-sm">📚</span>
-            {deck?.name || 'Uppercase'}
+            {deck?.name || "Uppercase"}
           </Link>
         </div>
         <div className="flex items-center gap-4">
@@ -105,7 +106,11 @@ function PlayPageContent() {
       {/* Guest mode banner */}
       {isGuest && (
         <div className="w-full bg-[#FFF3CD] px-4 py-2 text-center text-sm text-[#856404]">
-          Playing as guest - <Link href="/" className="font-semibold underline text-[#856404]">Sign in</Link> to save your progress across devices!
+          Playing as guest -{" "}
+          <Link href="/" className="font-semibold underline text-[#856404]">
+            Sign in
+          </Link>{" "}
+          to save your progress across devices!
         </div>
       )}
 
@@ -113,11 +118,8 @@ function PlayPageContent() {
       <div className="flex-1 flex flex-col items-center justify-center max-w-lg mx-auto w-full px-4">
         {/* Message Area */}
         <div className="h-8 mb-2 text-center">
-          <span
-            className="text-lg font-bold"
-            style={{ color: '#5FD3BC' }}
-          >
-            {isFlipped ? '' : 'Tap the card!'}
+          <span className="text-lg font-bold" style={{ color: "#5FD3BC" }}>
+            {isFlipped ? "" : "Tap the card!"}
           </span>
         </div>
 
@@ -137,7 +139,7 @@ function PlayPageContent() {
         />
       </div>
     </div>
-  )
+  );
 }
 
 function PlayPageLoading() {
@@ -145,12 +147,12 @@ function PlayPageLoading() {
     <div className="min-h-screen flex items-center justify-center">
       <div
         className="text-2xl"
-        style={{ fontFamily: "'Fredoka One', cursive", color: '#FF8BA7' }}
+        style={{ fontFamily: "'Fredoka One', cursive", color: "#FF8BA7" }}
       >
         Loading...
       </div>
     </div>
-  )
+  );
 }
 
 export default function PlayPage() {
@@ -158,5 +160,5 @@ export default function PlayPage() {
     <Suspense fallback={<PlayPageLoading />}>
       <PlayPageContent />
     </Suspense>
-  )
+  );
 }

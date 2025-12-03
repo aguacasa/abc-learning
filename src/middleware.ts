@@ -1,58 +1,54 @@
-import { createServerClient } from '@supabase/ssr'
-import { NextResponse, type NextRequest } from 'next/server'
+import { createServerClient } from "@supabase/ssr";
+import { NextResponse, type NextRequest } from "next/server";
 
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
-const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
+const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
 
 export async function middleware(request: NextRequest) {
   // Skip middleware if Supabase is not configured (during build)
   if (!supabaseUrl || !supabaseAnonKey) {
-    return NextResponse.next()
+    return NextResponse.next();
   }
 
   let supabaseResponse = NextResponse.next({
     request,
-  })
+  });
 
-  const supabase = createServerClient(
-    supabaseUrl,
-    supabaseAnonKey,
-    {
-      cookies: {
-        getAll() {
-          return request.cookies.getAll()
-        },
-        setAll(cookiesToSet) {
-          cookiesToSet.forEach(({ name, value }) =>
-            request.cookies.set(name, value)
-          )
-          supabaseResponse = NextResponse.next({
-            request,
-          })
-          cookiesToSet.forEach(({ name, value, options }) =>
-            supabaseResponse.cookies.set(name, value, options)
-          )
-        },
+  const supabase = createServerClient(supabaseUrl, supabaseAnonKey, {
+    cookies: {
+      getAll() {
+        return request.cookies.getAll();
       },
-    }
-  )
+      setAll(cookiesToSet) {
+        cookiesToSet.forEach(({ name, value }) =>
+          request.cookies.set(name, value),
+        );
+        supabaseResponse = NextResponse.next({
+          request,
+        });
+        cookiesToSet.forEach(({ name, value, options }) =>
+          supabaseResponse.cookies.set(name, value, options),
+        );
+      },
+    },
+  });
 
   // Refresh session if expired
   const {
     data: { user },
-  } = await supabase.auth.getUser()
+  } = await supabase.auth.getUser();
 
   // Allow guests to access /play routes - no redirection needed
   // Progress will be saved in localStorage for guests
 
   // Redirect logged-in users from home to play
-  if (request.nextUrl.pathname === '/' && user) {
-    const url = request.nextUrl.clone()
-    url.pathname = '/play'
-    return NextResponse.redirect(url)
+  if (request.nextUrl.pathname === "/" && user) {
+    const url = request.nextUrl.clone();
+    url.pathname = "/play";
+    return NextResponse.redirect(url);
   }
 
-  return supabaseResponse
+  return supabaseResponse;
 }
 
 export const config = {
@@ -63,6 +59,6 @@ export const config = {
      * - _next/image (image optimization files)
      * - favicon.ico (favicon file)
      */
-    '/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)',
+    "/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)",
   ],
-}
+};

@@ -1,16 +1,16 @@
-'use client'
+"use client";
 
 interface GameControlsProps {
-  visible: boolean
-  onHard: () => void
-  onEasy: () => void
+  visible: boolean;
+  onHard: () => void;
+  onEasy: () => void;
 }
 
 export function GameControls({ visible, onHard, onEasy }: GameControlsProps) {
   return (
     <div
       className={`flex gap-5 transition-opacity duration-300 ${
-        visible ? 'opacity-100' : 'opacity-0 pointer-events-none'
+        visible ? "opacity-100" : "opacity-0 pointer-events-none"
       }`}
     >
       <button
@@ -28,5 +28,5 @@ export function GameControls({ visible, onHard, onEasy }: GameControlsProps) {
         <span>🤩</span> I Know It!
       </button>
     </div>
-  )
+  );
 }

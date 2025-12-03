@@ -1,86 +1,86 @@
-'use client'
+"use client";
 
-import { useState } from 'react'
-import { createClient, isSupabaseConfigured } from '@/lib/supabase/client'
-import { useRouter } from 'next/navigation'
-import { decks, DeckId } from '@/lib/decks'
+import { useState } from "react";
+import { createClient, isSupabaseConfigured } from "@/lib/supabase/client";
+import { useRouter } from "next/navigation";
+import { decks, DeckId } from "@/lib/decks";
 
-type ViewState = 'home' | 'login'
+type ViewState = "home" | "login";
 
 export default function HomePage() {
-  const [email, setEmail] = useState('')
-  const [password, setPassword] = useState('')
-  const [isSignUp, setIsSignUp] = useState(false)
-  const [loading, setLoading] = useState(false)
-  const [error, setError] = useState<string | null>(null)
-  const [viewState, setViewState] = useState<ViewState>('home')
-  const router = useRouter()
-  const supabase = createClient()
-  const supabaseAvailable = isSupabaseConfigured()
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [isSignUp, setIsSignUp] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [viewState, setViewState] = useState<ViewState>("home");
+  const router = useRouter();
+  const supabase = createClient();
+  const supabaseAvailable = isSupabaseConfigured();
 
   const handleDeckSelect = (deckId: DeckId) => {
-    router.push(`/play?deck=${deckId}`)
-  }
+    router.push(`/play?deck=${deckId}`);
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault()
+    e.preventDefault();
     if (!supabase) {
-      setError('Authentication is not configured. Please play as guest.')
-      return
+      setError("Authentication is not configured. Please play as guest.");
+      return;
     }
-    setLoading(true)
-    setError(null)
+    setLoading(true);
+    setError(null);
 
     try {
       if (isSignUp) {
         const { error } = await supabase.auth.signUp({
           email,
           password,
-        })
-        if (error) throw error
-        setError('Check your email for a confirmation link!')
+        });
+        if (error) throw error;
+        setError("Check your email for a confirmation link!");
       } else {
         const { error } = await supabase.auth.signInWithPassword({
           email,
           password,
-        })
-        if (error) throw error
-        router.push('/play')
-        router.refresh()
+        });
+        if (error) throw error;
+        router.push("/play");
+        router.refresh();
       }
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'An error occurred')
+      setError(err instanceof Error ? err.message : "An error occurred");
     } finally {
-      setLoading(false)
+      setLoading(false);
     }
-  }
+  };
 
   const handleGoogleLogin = async () => {
     if (!supabase) {
-      setError('Authentication is not configured. Please play as guest.')
-      return
+      setError("Authentication is not configured. Please play as guest.");
+      return;
     }
-    setLoading(true)
+    setLoading(true);
     const { error } = await supabase.auth.signInWithOAuth({
-      provider: 'google',
+      provider: "google",
       options: {
         redirectTo: `${window.location.origin}/auth/callback`,
       },
-    })
+    });
     if (error) {
-      setError(error.message)
-      setLoading(false)
+      setError(error.message);
+      setLoading(false);
     }
-  }
+  };
 
   // Show login/signup form
-  if (viewState === 'login') {
+  if (viewState === "login") {
     return (
       <div className="min-h-screen flex flex-col items-center justify-center p-4 bg-gradient-to-b from-[#FFF5F7] to-white">
         <div className="text-center mb-6">
           <h1
             className="text-4xl mb-2"
-            style={{ fontFamily: "'Fredoka One', cursive", color: '#FF8BA7' }}
+            style={{ fontFamily: "'Fredoka One', cursive", color: "#FF8BA7" }}
           >
             Welcome Back!
           </h1>
@@ -89,7 +89,7 @@ export default function HomePage() {
 
         <div className="bg-white rounded-3xl shadow-xl p-8 w-full max-w-md">
           <button
-            onClick={() => setViewState('home')}
+            onClick={() => setViewState("home")}
             className="mb-4 text-[#5FD3BC] font-bold text-sm cursor-pointer bg-transparent border-none"
           >
             ← Back to Packs
@@ -119,7 +119,9 @@ export default function HomePage() {
             </div>
 
             {error && (
-              <p className={`text-center ${error.includes('Check your email') ? 'text-green-600' : 'text-red-500'}`}>
+              <p
+                className={`text-center ${error.includes("Check your email") ? "text-green-600" : "text-red-500"}`}
+              >
                 {error}
               </p>
             )}
@@ -130,11 +132,11 @@ export default function HomePage() {
               className="w-full py-4 rounded-xl text-white text-xl font-bold cursor-pointer disabled:opacity-50 transition-transform active:scale-95 border-none"
               style={{
                 fontFamily: "'Fredoka One', cursive",
-                backgroundColor: '#5FD3BC',
-                boxShadow: '0 5px 0 rgba(0,0,0,0.1)',
+                backgroundColor: "#5FD3BC",
+                boxShadow: "0 5px 0 rgba(0,0,0,0.1)",
               }}
             >
-              {loading ? 'Loading...' : isSignUp ? 'Create Account' : 'Sign In'}
+              {loading ? "Loading..." : isSignUp ? "Create Account" : "Sign In"}
             </button>
           </form>
 
@@ -143,7 +145,9 @@ export default function HomePage() {
               onClick={() => setIsSignUp(!isSignUp)}
               className="text-[#FF8BA7] underline cursor-pointer bg-transparent border-none text-base"
             >
-              {isSignUp ? 'Already have an account? Sign in' : "Don't have an account? Sign up"}
+              {isSignUp
+                ? "Already have an account? Sign in"
+                : "Don't have an account? Sign up"}
             </button>
           </div>
 
@@ -183,7 +187,7 @@ export default function HomePage() {
           </button>
         </div>
       </div>
-    )
+    );
   }
 
   // Home screen with deck selection as primary content
@@ -193,7 +197,7 @@ export default function HomePage() {
       <header className="flex justify-end mb-2">
         {supabaseAvailable && (
           <button
-            onClick={() => setViewState('login')}
+            onClick={() => setViewState("login")}
             className="px-4 py-2 rounded-full bg-white border-2 border-[#A0C4FF] text-[#A0C4FF] text-sm font-semibold cursor-pointer transition-all hover:border-[#5FD3BC] hover:text-[#5FD3BC]"
             style={{ fontFamily: "'Fredoka One', cursive" }}
           >
@@ -208,14 +212,14 @@ export default function HomePage() {
         <div className="text-center mb-8">
           <h1
             className="text-5xl md:text-6xl mb-3"
-            style={{ fontFamily: "'Fredoka One', cursive", color: '#FF8BA7' }}
+            style={{ fontFamily: "'Fredoka One', cursive", color: "#FF8BA7" }}
           >
             ABC Fun Cards
           </h1>
           <p className="text-lg text-gray-600 mb-1">Learn letters with fun!</p>
           <p
             className="text-xl font-bold"
-            style={{ fontFamily: "'Fredoka One', cursive", color: '#5FD3BC' }}
+            style={{ fontFamily: "'Fredoka One', cursive", color: "#5FD3BC" }}
           >
             Pick a pack to start!
           </p>
@@ -229,7 +233,7 @@ export default function HomePage() {
               onClick={() => handleDeckSelect(deck.id)}
               className="w-full p-5 rounded-2xl bg-white border-3 border-transparent hover:border-[#5FD3BC] shadow-lg hover:shadow-xl text-left cursor-pointer transition-all active:scale-[0.98] flex items-center gap-4"
               style={{
-                boxShadow: '0 4px 20px rgba(0,0,0,0.08)',
+                boxShadow: "0 4px 20px rgba(0,0,0,0.08)",
               }}
             >
               <div
@@ -237,8 +241,8 @@ export default function HomePage() {
                 style={{
                   fontFamily: "'Fredoka One', cursive",
                   backgroundColor: getDeckColor(deck.id),
-                  width: '72px',
-                  height: '72px',
+                  width: "72px",
+                  height: "72px",
                 }}
               >
                 {deck.icon}
@@ -246,15 +250,20 @@ export default function HomePage() {
               <div className="flex-1 min-w-0">
                 <div
                   className="font-bold text-xl truncate"
-                  style={{ fontFamily: "'Fredoka One', cursive", color: '#333' }}
+                  style={{
+                    fontFamily: "'Fredoka One', cursive",
+                    color: "#333",
+                  }}
                 >
                   {deck.name}
                 </div>
-                <div className="text-gray-500 text-sm mt-1">{deck.description}</div>
+                <div className="text-gray-500 text-sm mt-1">
+                  {deck.description}
+                </div>
                 <div
                   className="text-xs mt-2 px-2 py-1 rounded-full inline-block"
                   style={{
-                    backgroundColor: getDeckColor(deck.id) + '20',
+                    backgroundColor: getDeckColor(deck.id) + "20",
                     color: getDeckColor(deck.id),
                   }}
                 >
@@ -271,26 +280,27 @@ export default function HomePage() {
           ))}
         </div>
 
-        {/* Helper text */}
-        <p className="mt-8 text-sm text-gray-500 text-center max-w-md">
-          {supabaseAvailable
-            ? 'Sign in to save progress across devices!'
-            : 'Progress is saved locally on this device.'}
-        </p>
+        {/* Login prompt */}
+        <button
+          onClick={() => setViewState("login")}
+          className="mt-8 text-sm text-gray-500 text-center cursor-pointer bg-transparent border-none hover:text-[#5FD3BC] transition-colors"
+        >
+          Log in to save your progress.
+        </button>
       </main>
     </div>
-  )
+  );
 }
 
 function getDeckColor(deckId: DeckId): string {
   switch (deckId) {
-    case 'uppercase':
-      return '#FF8BA7'
-    case 'lowercase':
-      return '#5FD3BC'
-    case 'mixed':
-      return '#A0C4FF'
+    case "uppercase":
+      return "#FF8BA7";
+    case "lowercase":
+      return "#5FD3BC";
+    case "mixed":
+      return "#A0C4FF";
     default:
-      return '#FF8BA7'
+      return "#FF8BA7";
   }
 }
