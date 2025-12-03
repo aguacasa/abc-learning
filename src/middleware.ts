@@ -42,12 +42,8 @@ export async function middleware(request: NextRequest) {
     data: { user },
   } = await supabase.auth.getUser()
 
-  // Protect /play routes - redirect to login if not authenticated
-  if (request.nextUrl.pathname.startsWith('/play') && !user) {
-    const url = request.nextUrl.clone()
-    url.pathname = '/'
-    return NextResponse.redirect(url)
-  }
+  // Allow guests to access /play routes - no redirection needed
+  // Progress will be saved in localStorage for guests
 
   // Redirect logged-in users from home to play
   if (request.nextUrl.pathname === '/' && user) {

@@ -3,6 +3,7 @@
 import { useState } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { useRouter } from 'next/navigation'
+import Link from 'next/link'
 
 export default function LoginPage() {
   const [email, setEmail] = useState('')
@@ -10,6 +11,7 @@ export default function LoginPage() {
   const [isSignUp, setIsSignUp] = useState(false)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [showLoginForm, setShowLoginForm] = useState(false)
   const router = useRouter()
   const supabase = createClient()
 
@@ -56,6 +58,65 @@ export default function LoginPage() {
     }
   }
 
+  // Show initial choice screen (Play Now vs Sign In)
+  if (!showLoginForm) {
+    return (
+      <div className="min-h-screen flex flex-col items-center justify-center p-4">
+        <div className="text-center mb-8">
+          <h1
+            className="text-5xl mb-2"
+            style={{ fontFamily: "'Fredoka One', cursive", color: '#FF8BA7' }}
+          >
+            ABC Fun Cards
+          </h1>
+          <p className="text-lg text-gray-600">Learn letters with fun!</p>
+        </div>
+
+        <div className="bg-white rounded-3xl shadow-xl p-8 w-full max-w-md">
+          {/* Primary action - Play Now */}
+          <Link
+            href="/play"
+            className="block w-full py-5 rounded-xl text-white text-2xl font-bold text-center no-underline transition-transform active:scale-95"
+            style={{
+              fontFamily: "'Fredoka One', cursive",
+              backgroundColor: '#5FD3BC',
+              boxShadow: '0 5px 0 rgba(0,0,0,0.1)',
+            }}
+          >
+            Play Now!
+          </Link>
+
+          <p className="text-center text-gray-500 text-sm mt-3 mb-6">
+            No account needed - start learning right away!
+          </p>
+
+          <div className="relative mb-6">
+            <div className="absolute inset-0 flex items-center">
+              <div className="w-full border-t border-gray-300" />
+            </div>
+            <div className="relative flex justify-center text-sm">
+              <span className="px-2 bg-white text-gray-500">or</span>
+            </div>
+          </div>
+
+          {/* Secondary action - Sign In */}
+          <button
+            onClick={() => setShowLoginForm(true)}
+            className="w-full py-4 rounded-xl bg-white border-2 border-[#A0C4FF] text-[#A0C4FF] text-lg font-semibold cursor-pointer transition-transform active:scale-95"
+            style={{ fontFamily: "'Fredoka One', cursive" }}
+          >
+            Sign In to Save Progress
+          </button>
+        </div>
+
+        <p className="mt-8 text-sm text-gray-500 text-center max-w-md">
+          Create an account to save progress across devices and never lose your stars!
+        </p>
+      </div>
+    )
+  }
+
+  // Show login/signup form
   return (
     <div className="min-h-screen flex flex-col items-center justify-center p-4">
       <div className="text-center mb-8">
@@ -69,6 +130,13 @@ export default function LoginPage() {
       </div>
 
       <div className="bg-white rounded-3xl shadow-xl p-8 w-full max-w-md">
+        <button
+          onClick={() => setShowLoginForm(false)}
+          className="mb-4 text-[#5FD3BC] font-bold text-sm cursor-pointer bg-transparent border-none"
+        >
+          ← Back
+        </button>
+
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
             <input
@@ -158,7 +226,7 @@ export default function LoginPage() {
       </div>
 
       <p className="mt-8 text-sm text-gray-500 text-center max-w-md">
-        Parents create accounts to save their child&apos;s learning progress across all devices.
+        Sign in to save progress across devices and never lose your stars!
       </p>
     </div>
   )

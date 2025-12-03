@@ -16,6 +16,7 @@ export default function PlayPage() {
     totalStars,
     confettiTrigger,
     newAchievement,
+    isGuest,
     flipCard,
     handleResult,
     signOut,
@@ -65,14 +66,30 @@ export default function PlayPage() {
           >
             🏆
           </Link>
-          <button
-            onClick={signOut}
-            className="text-gray-400 text-sm hover:text-gray-600 bg-transparent border-none cursor-pointer"
-          >
-            Sign Out
-          </button>
+          {isGuest ? (
+            <Link
+              href="/"
+              className="text-[#5FD3BC] text-sm font-semibold no-underline hover:underline"
+            >
+              Save Progress
+            </Link>
+          ) : (
+            <button
+              onClick={signOut}
+              className="text-gray-400 text-sm hover:text-gray-600 bg-transparent border-none cursor-pointer"
+            >
+              Sign Out
+            </button>
+          )}
         </div>
       </header>
+
+      {/* Guest mode banner */}
+      {isGuest && (
+        <div className="w-full bg-[#FFF3CD] px-4 py-2 text-center text-sm text-[#856404]">
+          Playing as guest - <Link href="/" className="font-semibold underline text-[#856404]">Sign in</Link> to save your progress across devices!
+        </div>
+      )}
 
       {/* Game Container */}
       <div className="flex-1 flex flex-col items-center justify-center max-w-lg mx-auto w-full px-4">
