@@ -1,6 +1,6 @@
 # ABC Fun Cards
 
-An interactive flashcard app to help toddlers learn the alphabet with spaced repetition, progress tracking, and achievements.
+An interactive flashcard app to help toddlers learn the alphabet and numbers with spaced repetition, progress tracking, and achievements.
 
 ## Features
 
