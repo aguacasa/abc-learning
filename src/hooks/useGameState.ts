@@ -110,6 +110,7 @@ interface GameState {
   allProgress: CardProgress[];
   isGuest: boolean;
   deckId: DeckId;
+  selectedLetterIds: Set<string>;
 }
 
 interface UseGameStateOptions {
@@ -128,6 +129,7 @@ export function useGameState(options: UseGameStateOptions = {}) {
     allProgress: [],
     isGuest: true,
     deckId,
+    selectedLetterIds: new Set<string>(),
   });
   const [confettiTrigger, setConfettiTrigger] = useState(0);
   const [newAchievement, setNewAchievement] = useState<Achievement | null>(
@@ -387,27 +389,37 @@ export function useGameState(options: UseGameStateOptions = {}) {
       guestAchievements: loadedGuestAchievements,
     } = await loadProgress();
     const totalStars = await loadStats(isGuest);
-    const nextCard = selectNextCard(progress);
 
     if (loadedGuestAchievements) {
       setGuestAchievements(loadedGuestAchievements);
     }
 
-    if (nextCard) {
-      const letter = deckLetters.find((l) => l.id === nextCard.letter_id);
-      setState({
-        currentLetter: letter || deckLetters[0],
-        currentProgress: nextCard,
-        isFlipped: false,
-        isLoading: false,
-        totalStars,
-        allProgress: progress,
-        isGuest,
-        deckId,
-      });
-    } else {
-      setState((s) => ({ ...s, isLoading: false, isGuest, deckId }));
-    }
+    // Filter progress by selected cards if any are selected
+    setState((prevState) => {
+      const filteredProgress =
+        prevState.selectedLetterIds.size > 0
+          ? progress.filter((p) => prevState.selectedLetterIds.has(p.letter_id))
+          : progress;
+
+      const nextCard = selectNextCard(filteredProgress);
+
+      if (nextCard) {
+        const letter = deckLetters.find((l) => l.id === nextCard.letter_id);
+        return {
+          ...prevState,
+          currentLetter: letter || deckLetters[0],
+          currentProgress: nextCard,
+          isFlipped: false,
+          isLoading: false,
+          totalStars,
+          allProgress: progress,
+          isGuest,
+          deckId,
+        };
+      } else {
+        return { ...prevState, isLoading: false, isGuest, deckId, allProgress: progress, totalStars };
+      }
+    });
   }, [loadProgress, loadStats, deckLetters, deckId]);
 
   // Flip the card
@@ -577,6 +589,16 @@ export function useGameState(options: UseGameStateOptions = {}) {
     window.location.href = "/";
   }, [supabase]);
 
+  // Set selected letter IDs for training
+  const setSelectedLetterIds = useCallback((ids: Set<string>) => {
+    setState((s) => ({ ...s, selectedLetterIds: ids }));
+  }, []);
+
+  // Start training with selected cards
+  const startTrainingWithSelection = useCallback(() => {
+    loadNextCard();
+  }, [loadNextCard]);
+
   // Initialize on mount - this is an intentional initialization effect
   useEffect(() => {
     // eslint-disable-next-line react-hooks/set-state-in-effect
@@ -585,6 +607,7 @@ export function useGameState(options: UseGameStateOptions = {}) {
 
   return {
     ...state,
+    deckLetters,
     confettiTrigger,
     newAchievement,
     guestAchievements,
@@ -592,5 +615,7 @@ export function useGameState(options: UseGameStateOptions = {}) {
     handleResult,
     signOut,
     loadNextCard,
+    setSelectedLetterIds,
+    startTrainingWithSelection,
   };
 }

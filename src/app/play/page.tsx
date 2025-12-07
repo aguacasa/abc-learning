@@ -1,6 +1,6 @@
 "use client";
 
-import { Suspense } from "react";
+import { Suspense, useState } from "react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { useGameState } from "@/hooks/useGameState";
@@ -8,6 +8,7 @@ import { FlashCard } from "@/components/FlashCard";
 import { GameControls } from "@/components/GameControls";
 import { StarJar } from "@/components/StarJar";
 import { Confetti } from "@/components/Confetti";
+import { CardSelectionModal } from "@/components/CardSelectionModal";
 import { DeckId, getDeckById } from "@/lib/decks";
 
 function PlayPageContent() {
@@ -16,6 +17,7 @@ function PlayPageContent() {
   const deckId: DeckId =
     deckParam && getDeckById(deckParam) ? deckParam : "uppercase";
   const deck = getDeckById(deckId);
+  const [showCardSelection, setShowCardSelection] = useState(false);
 
   const {
     currentLetter,
@@ -26,10 +28,20 @@ function PlayPageContent() {
     confettiTrigger,
     newAchievement,
     isGuest,
+    allProgress,
+    deckLetters,
+    selectedLetterIds,
     flipCard,
     handleResult,
     signOut,
+    setSelectedLetterIds,
+    startTrainingWithSelection,
   } = useGameState({ deckId });
+
+  const handleStartTraining = () => {
+    setShowCardSelection(false);
+    startTrainingWithSelection();
+  };
 
   if (isLoading || !currentLetter || !currentProgress) {
     return (
@@ -64,6 +76,17 @@ function PlayPageContent() {
         </div>
       )}
 
+      {/* Card Selection Modal */}
+      <CardSelectionModal
+        isOpen={showCardSelection}
+        onClose={() => setShowCardSelection(false)}
+        letters={deckLetters}
+        progress={allProgress}
+        selectedLetterIds={selectedLetterIds}
+        onSelectionChange={setSelectedLetterIds}
+        onStartTraining={handleStartTraining}
+      />
+
       {/* Header */}
       <header className="w-full p-4 flex justify-between items-center">
         <div className="flex items-center gap-3">
@@ -78,6 +101,13 @@ function PlayPageContent() {
           </Link>
         </div>
         <div className="flex items-center gap-4">
+          <button
+            onClick={() => setShowCardSelection(true)}
+            className="text-2xl bg-transparent border-none cursor-pointer hover:scale-110 transition-transform"
+            title="Select cards to train"
+          >
+            📋
+          </button>
           <Link
             href="/play/achievements"
             className="text-2xl no-underline hover:scale-110 transition-transform"
